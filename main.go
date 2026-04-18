@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net"
 	"sync"
@@ -20,7 +19,6 @@ var (
 	okResp    = []byte("HTTP/1.1 200 OK\r\nContent-Type: text/plain; charset=utf-8\r\nContent-Length: 18\r\nConnection: keep-alive\r\n\r\nhello from pure go")
 	rootKey   = []byte("GET / ")
 	healthKey = []byte("GET /health ")
-	reqCount  uint64 // Atomic request counter
 )
 
 func main() {
@@ -46,7 +44,6 @@ func main() {
 
 	const maxGoroutines = 1024
 	sem := make(chan struct{}, maxGoroutines)
-	go statsPrinter() // Print req/s every 5s
 
 	for {
 		c, err := ln.Accept()
@@ -58,14 +55,6 @@ func main() {
 			defer func() { <-sem }()
 			handleRequest(c)
 		}()
-	}
-}
-
-func statsPrinter() {
-	ticker := time.NewTicker(5 * time.Second)
-	defer ticker.Stop()
-	for range ticker.C {
-		fmt.Printf("requests/sec: ~%.0f (total: %d)\n", float64(reqCount)/5, reqCount)
 	}
 }
 
@@ -83,7 +72,6 @@ func handleRequest(conn net.Conn) {
 			return
 		}
 		rb = rb[:len(rb)+n]
-		reqCount++ // Bump counter
 
 		// Fast prefix match on bytes
 		if len(rb) >= 9 && (hasPrefix(rb, rootKey) || hasPrefix(rb, healthKey)) {
@@ -93,6 +81,7 @@ func handleRequest(conn net.Conn) {
 			rb = rb[:0]
 			continue
 		}
+
 		// 404 + close
 		conn.Write([]byte("HTTP/1.1 404 Not Found\r\nConnection: close\r\n\r\n"))
 		return
