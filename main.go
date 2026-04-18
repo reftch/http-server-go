@@ -24,7 +24,6 @@ var (
 func main() {
 	before := time.Now()
 
-	// SO_REUSEPORT for max concurrency (Linux)
 	ln, err := net.Listen("tcp", ":8080")
 	if err != nil {
 		log.Fatal(err)
@@ -42,7 +41,7 @@ func main() {
 	startupMicros := after.Sub(before).Microseconds()
 	log.Printf("server started at on http://localhost:8080, startup time %d µs", startupMicros)
 
-	const maxGoroutines = 1024
+	const maxGoroutines = 100
 	sem := make(chan struct{}, maxGoroutines)
 
 	for {
