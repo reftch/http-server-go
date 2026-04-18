@@ -8,7 +8,7 @@ dev:
 	go run .
 
 build:
-	GOARCH=arm64 go build -ldflags="-s -w" -o server main.go
+	GOARCH=amd64 go build -ldflags="-s -w" -o server main.go
 
 clean:
 	rm -rf server

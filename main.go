@@ -16,7 +16,7 @@ type Ctx struct {
 }
 
 var (
-	pool      = sync.Pool{New: func() interface{} { c := &Ctx{buf: make([]byte, 8192)}; return c }}
+	pool      = sync.Pool{New: func() any { c := &Ctx{buf: make([]byte, 8192)}; return c }}
 	okResp    = []byte("HTTP/1.1 200 OK\r\nContent-Type: text/plain; charset=utf-8\r\nContent-Length: 18\r\nConnection: keep-alive\r\n\r\nhello from pure go")
 	rootKey   = []byte("GET / ")
 	healthKey = []byte("GET /health ")
@@ -35,7 +35,7 @@ func main() {
 	if tcpln, ok := ln.(*net.TCPListener); ok {
 		file, err := tcpln.File()
 		if err == nil {
-			syscall.SetsockoptInt(int(file.Fd()), syscall.SOL_SOCKET, syscall.SO_REUSEPORT, 1)
+			syscall.SetsockoptInt(int(file.Fd()), syscall.SOL_SOCKET, syscall.SO_REUSEADDR, 1)
 			file.Close()
 		}
 	}
@@ -89,7 +89,7 @@ func handleRequest(conn net.Conn) {
 		if len(rb) >= 9 && (hasPrefix(rb, rootKey) || hasPrefix(rb, healthKey)) {
 			_, _ = conn.Write(okResp)
 			// Drain rest of request line/headers for keep-alive
-			drainTo(rb, []byte("\r\n\r\n"))
+			drainTo(rb)
 			rb = rb[:0]
 			continue
 		}
@@ -113,7 +113,7 @@ func hasPrefix(b, prefix []byte) bool {
 }
 
 // drainTo finds \r\n\r\n, discards prefix (zero-copy)
-func drainTo(b []byte, delim []byte) {
+func drainTo(b []byte) {
 	// Manual search - no strings.Index
 	for i := 0; i+3 < len(b); i++ {
 		if b[i] == '\r' && b[i+1] == '\n' && b[i+2] == '\r' && b[i+3] == '\n' {
