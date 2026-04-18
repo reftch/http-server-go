@@ -55,7 +55,7 @@ func main() {
 		}
 		sem <- struct{}{}
 		go func() {
-			// defer func() { <-sem }()
+			defer func() { <-sem }()
 			handleRequest(c)
 		}()
 	}
